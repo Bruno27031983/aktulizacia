@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="sk">
 <head>
@@ -338,6 +339,14 @@
             display: block;
             opacity: 1;
         }
+        /* Nové CSS pre tlačidlo zálohy */
+        .backup-button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn.backup-btn {
+            background-color: #FFA500; /* oranžová farba */
+        }
     </style>
 </head>
 <body>
@@ -423,9 +432,12 @@
         <div class="btn-container">
             <button class="btn reset-btn" onclick="resetAll()">Resetovať všetko</button>
             <button class="btn export-btn" onclick="exportToPDF()">Exportovať do PDF</button>
-            <button class="btn export-btn" onclick="createBackup()">Vytvoriť zálohu</button>
             <button class="btn export-btn" onclick="sendPDF()">Odoslať PDF</button>
             <button class="btn export-btn" onclick="restoreBackup()">Obnoviť zálohu</button>
+        </div>
+        <!-- Nový blok pre tlačidlo "Vytvoriť zálohu", centrovaný a s oranžovou farbou -->
+        <div class="backup-button-container">
+            <button class="btn backup-btn" onclick="createBackup()">Vytvoriť zálohu</button>
         </div>
     </div>
 
