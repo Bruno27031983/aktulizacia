@@ -395,6 +395,225 @@
   <div id="saveNotification">Dáta boli úspešne uložené</div>
 
   <script>
+    // ==========================================
+    // MAXIMÁLNA OCHRANA DÁT PROTI VYMAZANIU
+    // ==========================================
+
+    // 1. Persistence API - Požiadať o trvalé úložisko
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().then(granted => {
+        if (granted) {
+          console.log('✅ Trvalé úložisko schválené - dáta budú chránené');
+        } else {
+          console.log('⚠️ Trvalé úložisko neschválené - dáta môžu byť vymazané');
+        }
+      });
+    }
+
+    // 2. IndexedDB - Trvalejšie úložisko ako localStorage
+    let db;
+    const DB_NAME = 'BrunosCalculatorDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'workData';
+
+    function initIndexedDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          db = request.result;
+          console.log('✅ IndexedDB inicializovaná');
+          resolve(db);
+        };
+
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            console.log('✅ IndexedDB object store vytvorený');
+          }
+        };
+      });
+    }
+
+    // Uloženie do IndexedDB
+    function saveToIndexedDB(data) {
+      if (!db) return Promise.resolve();
+
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put({
+          id: 'workDaysData',
+          data: data,
+          timestamp: new Date().toISOString()
+        });
+
+        request.onsuccess = () => {
+          console.log('✅ Dáta uložené do IndexedDB');
+          resolve();
+        };
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // Načítanie z IndexedDB
+    function loadFromIndexedDB() {
+      if (!db) return Promise.resolve(null);
+
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get('workDaysData');
+
+        request.onsuccess = () => {
+          if (request.result) {
+            console.log('✅ Dáta načítané z IndexedDB');
+            resolve(request.result.data);
+          } else {
+            resolve(null);
+          }
+        };
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // 3. Automatické zálohovanie každých 5 minút
+    let autoBackupInterval;
+    function startAutoBackup() {
+      autoBackupInterval = setInterval(() => {
+        const backupData = {
+          workDaysData: localStorage.getItem('workDaysData'),
+          hourlyWage: localStorage.getItem('hourlyWage'),
+          taxRate: localStorage.getItem('taxRate'),
+          darkMode: localStorage.getItem('darkMode'),
+          decimalPlaces: localStorage.getItem('decimalPlaces'),
+          employeeName: localStorage.getItem('employeeName'),
+          timestamp: new Date().toISOString()
+        };
+
+        // Uložiť do viacerých úložísk
+        if (backupData.workDaysData) {
+          // IndexedDB backup
+          saveToIndexedDB(backupData).catch(err => console.error('IndexedDB backup error:', err));
+
+          // SessionStorage backup (pre aktuálnu session)
+          try {
+            sessionStorage.setItem('brunosCalculatorBackup', JSON.stringify(backupData));
+            console.log('🔄 Automatická záloha vytvorená');
+          } catch (e) {
+            console.error('SessionStorage backup error:', e);
+          }
+        }
+      }, 5 * 60 * 1000); // každých 5 minút
+    }
+
+    // 4. Recovery mechanizmus - pokus načítať z viacerých zdrojov
+    async function recoverData() {
+      console.log('🔍 Hľadám dáta pre obnovenie...');
+
+      // Skús localStorage
+      let data = localStorage.getItem('workDaysData');
+      if (data) {
+        console.log('✅ Dáta nájdené v localStorage');
+        return JSON.parse(data);
+      }
+
+      // Skús IndexedDB
+      try {
+        const idbData = await loadFromIndexedDB();
+        if (idbData && idbData.workDaysData) {
+          console.log('✅ Dáta obnovené z IndexedDB');
+          // Obnov späť do localStorage
+          localStorage.setItem('workDaysData', idbData.workDaysData);
+          localStorage.setItem('hourlyWage', idbData.hourlyWage || '10');
+          localStorage.setItem('taxRate', idbData.taxRate || '0.02');
+          localStorage.setItem('darkMode', idbData.darkMode || 'false');
+          localStorage.setItem('decimalPlaces', idbData.decimalPlaces || '1');
+          localStorage.setItem('employeeName', idbData.employeeName || '""');
+          return JSON.parse(idbData.workDaysData);
+        }
+      } catch (e) {
+        console.error('IndexedDB recovery error:', e);
+      }
+
+      // Skús sessionStorage
+      try {
+        const sessionData = sessionStorage.getItem('brunosCalculatorBackup');
+        if (sessionData) {
+          const backup = JSON.parse(sessionData);
+          console.log('✅ Dáta obnovené zo sessionStorage');
+          // Obnov späť do localStorage
+          Object.keys(backup).forEach(key => {
+            if (key !== 'timestamp' && backup[key]) {
+              localStorage.setItem(key, backup[key]);
+            }
+          });
+          return JSON.parse(backup.workDaysData);
+        }
+      } catch (e) {
+        console.error('SessionStorage recovery error:', e);
+      }
+
+      console.log('⚠️ Žiadne dáta na obnovenie nenájdené');
+      return null;
+    }
+
+    // 5. Upozornenie pred zatvorením stránky ak sú neuložené zmeny
+    let hasUnsavedChanges = false;
+    window.addEventListener('beforeunload', (event) => {
+      // Vždy uložiť pred zatvorením
+      const data = localStorage.getItem('workDaysData');
+      if (data) {
+        saveToIndexedDB({
+          workDaysData: data,
+          hourlyWage: localStorage.getItem('hourlyWage'),
+          taxRate: localStorage.getItem('taxRate'),
+          darkMode: localStorage.getItem('darkMode'),
+          decimalPlaces: localStorage.getItem('decimalPlaces'),
+          employeeName: localStorage.getItem('employeeName')
+        }).catch(err => console.error('Error saving on unload:', err));
+      }
+
+      // Ak sú dáta, upozorni používateľa
+      if (data && data !== '{}') {
+        event.preventDefault();
+        event.returnValue = 'Máte uložené pracovné hodiny. Naozaj chcete odísť?';
+        return event.returnValue;
+      }
+    });
+
+    // 6. Detekcia vymazania localStorage a automatické obnovenie
+    window.addEventListener('storage', async (event) => {
+      if (event.key === 'workDaysData' && !event.newValue && event.oldValue) {
+        console.log('⚠️ Detekované vymazanie dát! Pokúšam sa obnoviť...');
+        const recovered = await recoverData();
+        if (recovered) {
+          alert('⚠️ Dáta boli vymazané, ale úspešne obnovené zo zálohy!');
+          location.reload();
+        } else {
+          alert('❌ Dáta boli vymazané a nepodarilo sa ich obnoviť. Použite funkciu "Obnoviť zálohu" ak máte uložený backup súbor.');
+        }
+      }
+    });
+
+    // 7. Pravidelná kontrola integrity dát
+    setInterval(() => {
+      const data = localStorage.getItem('workDaysData');
+      if (data && data !== '{}') {
+        // Dáta existujú, urob tichú zálohu
+        saveToIndexedDB({
+          workDaysData: data,
+          hourlyWage: localStorage.getItem('hourlyWage'),
+          taxRate: localStorage.getItem('taxRate'),
+          darkMode: localStorage.getItem('darkMode'),
+          decimalPlaces: localStorage.getItem('decimalPlaces'),
+          employeeName: localStorage.getItem('employeeName')
+        }).catch(err => console.error('Silent backup error:', err));
+      }
+    }, 2 * 60 * 1000); // každé 2 minúty
+
     // Registrácia Service Worker pre PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -404,7 +623,15 @@
       });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    // Inicializácia IndexedDB a automatického zálohovania
+    initIndexedDB().then(() => {
+      startAutoBackup();
+      console.log('✅ Ochranný systém dát aktivovaný');
+    }).catch(err => {
+      console.error('Chyba pri inicializácii IndexedDB:', err);
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
       const workDays = document.getElementById('workDays');
       const totalSalaryDiv = document.getElementById('totalSalary');
       const dataSizeText = document.getElementById('dataSizeText');
@@ -514,6 +741,17 @@
           localStorage.setItem('decimalPlaces', serializedDecimalPlaces);
           localStorage.setItem('employeeName', serializedEmployeeName);
           console.log('Dáta uložené do localStorage:', monthData);
+
+          // Uložiť aj do IndexedDB pre extra ochranu
+          saveToIndexedDB({
+            workDaysData: serializedData,
+            hourlyWage: serializedHourlyWage,
+            taxRate: serializedTaxRate,
+            darkMode: serializedDarkMode,
+            decimalPlaces: serializedDecimalPlaces,
+            employeeName: serializedEmployeeName
+          }).catch(err => console.error('Chyba pri ukladaní do IndexedDB:', err));
+
           updateDataSize();
           showSaveNotification();
         } catch (error) {
@@ -521,10 +759,23 @@
         }
       }
 
-      function loadFromLocalStorage() {
+      async function loadFromLocalStorage() {
         try {
           console.log(`Načítanie dát pre Rok=${currentYear}, Mesiac=${currentMonth}`);
-          const storedData = JSON.parse(localStorage.getItem('workDaysData')) || {};
+          let storedData = JSON.parse(localStorage.getItem('workDaysData'));
+
+          // Ak localStorage je prázdny, pokús sa obnoviť z IndexedDB
+          if (!storedData || Object.keys(storedData).length === 0) {
+            console.log('⚠️ localStorage je prázdny, pokúšam sa obnoviť z IndexedDB...');
+            const recoveredData = await recoverData();
+            if (recoveredData) {
+              storedData = recoveredData;
+              console.log('✅ Dáta úspešne obnovené z IndexedDB');
+            } else {
+              storedData = {};
+            }
+          }
+
           monthData = storedData;
           const storedHourlyWage = parseFloat(JSON.parse(localStorage.getItem('hourlyWage')));
           const storedTaxRate = parseFloat(JSON.parse(localStorage.getItem('taxRate')));
@@ -597,7 +848,7 @@
         return daysOfWeek[date.getDay()];
       }
 
-      function createTable() {
+      async function createTable() {
         workDays.innerHTML = '';
         console.log(`Vytváranie tabuľky pre Rok=${currentYear}, Mesiac=${currentMonth}`);
         const currentDay = new Date().getDate();
@@ -623,7 +874,7 @@
           `;
           workDays.appendChild(row);
         }
-        loadFromLocalStorage();
+        await loadFromLocalStorage();
       }
 
       window.handleInput = function(input, nextId) {
@@ -718,14 +969,14 @@
         calculateAndUpdateTotals();
       };
 
-      window.resetAll = function() {
+      window.resetAll = async function() {
         if (confirm('Ste si istý, že chcete resetovať dáta pre aktuálny mesiac? Táto akcia sa nedá vrátiť späť.')) {
           if (monthData[currentYear] && monthData[currentYear][currentMonth]) {
             delete monthData[currentYear][currentMonth];
             console.log(`Dáta pre Rok=${currentYear}, Mesiac=${currentMonth} vymazané`);
           }
           localStorage.setItem('workDaysData', JSON.stringify(monthData));
-          createTable();
+          await createTable();
           calculateTotal();
         }
       };
@@ -902,7 +1153,7 @@
           const file = event.target.files[0];
           if (!file) return;
           const reader = new FileReader();
-          reader.onload = (e) => {
+          reader.onload = async (e) => {
             try {
               const backup = JSON.parse(e.target.result);
               if (backup.workDaysData !== undefined) localStorage.setItem('workDaysData', backup.workDaysData);
@@ -911,7 +1162,7 @@
               if (backup.darkMode !== undefined) localStorage.setItem('darkMode', backup.darkMode);
               if (backup.decimalPlaces !== undefined) localStorage.setItem('decimalPlaces', backup.decimalPlaces);
               if (backup.employeeName !== undefined) localStorage.setItem('employeeName', backup.employeeName);
-              createTable();
+              await createTable();
               calculateTotal();
               updateDataSize();
               alert("Obnovenie zálohy bolo úspešné.");
@@ -994,16 +1245,16 @@
         calculateAndUpdateTotals();
       };
 
-      window.changeMonth = function() {
+      window.changeMonth = async function() {
         currentMonth = parseInt(monthSelect.value);
         console.log(`Zmena mesiaca: Mesiac=${currentMonth}, Rok=${currentYear}`);
-        createTable();
+        await createTable();
       };
 
-      window.changeYear = function() {
+      window.changeYear = async function() {
         currentYear = parseInt(yearSelect.value);
         console.log(`Zmena roka: Rok=${currentYear}, Mesiac=${currentMonth}`);
-        createTable();
+        await createTable();
       };
 
       function getDaysInMonth(month) {
@@ -1052,7 +1303,7 @@
         }
       }
 
-      createTable();
+      await createTable();
       calculateTotal();
       loadDarkMode();
       updateDataSize();
