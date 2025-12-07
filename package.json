@@ -1,0 +1,40 @@
+{
+  "name": "brunos-calculator",
+  "version": "2.0.0",
+  "description": "Progressive Web Application pre sledovanie pracovného času a výpočet mzdy",
+  "main": "index.html",
+  "scripts": {
+    "test": "node test-app.js",
+    "test:calculations": "node test-calculations.js",
+    "test:integrations": "node test-integrations.js",
+    "test:offline": "node test-integrations-offline.js",
+    "test:all": "npm test && npm run test:calculations && npm run test:integrations && npm run test:offline",
+    "serve": "npx http-server -p 8080 -c-1",
+    "serve:https": "npx http-server -p 8443 -S -C cert.pem -K key.pem -c-1"
+  },
+  "keywords": [
+    "calculator",
+    "time-tracking",
+    "payroll",
+    "pwa",
+    "offline",
+    "pdf-export",
+    "work-hours",
+    "salary-calculator"
+  ],
+  "author": "Bruno",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bruno27031983/aktulizacia.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Bruno27031983/aktulizacia/issues"
+  },
+  "homepage": "https://github.com/Bruno27031983/aktulizacia#readme",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}
