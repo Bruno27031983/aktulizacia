@@ -11,16 +11,16 @@ document.addEventListener('DOMContentLoaded', function() {
       if (indicator) {
         if (granted) {
           indicator.textContent = 'Trvalé úložisko: Povolené';
-          indicator.style.color = '#4CAF50';
+          indicator.classList.add('storage-granted');
         } else {
           indicator.textContent = 'Trvalé úložisko: Dočasné';
-          indicator.style.color = '#ff9800';
+          indicator.classList.add('storage-temporary');
         }
       }
     });
   } else if (indicator) {
     indicator.textContent = 'Trvalé úložisko: Nepodporované';
-    indicator.style.color = '#999';
+    indicator.classList.add('storage-unsupported');
   }
 });
 
@@ -549,13 +549,21 @@ document.addEventListener('DOMContentLoaded', function() {
         (localStorage.getItem('employeeName') || '""');
       var bytes = new Blob([totalData]).size;
       var kilobytes = (bytes / 1024).toFixed(2);
-      var percentageUsed = Math.min(((bytes / MAX_DATA_SIZE) * 100).toFixed(2), 100);
+      var percentageUsed = Math.min(((bytes / MAX_DATA_SIZE) * 100), 100);
       dataSizeText.textContent = 'Veľkosť dát: ' + kilobytes + ' KB / ' + MAX_DATA_SIZE_KB + ' KB';
-      dataSizeFill.style.width = percentageUsed + '%';
-      dataSizeFill.style.backgroundColor = percentageUsed > 80 ? '#f44336' : percentageUsed > 50 ? '#ff9800' : '#4CAF50';
-      if (bytes > MAX_DATA_SIZE) {
-        dataSizeFill.style.backgroundColor = '#f44336';
-        alert('Aktuálna veľkosť dát (' + kilobytes + ' KB) prekročila maximálnu povolenú veľkosť (' + MAX_DATA_SIZE_KB + ' KB).');
+      var widthClass = 'width-' + (Math.round(percentageUsed / 5) * 5);
+      dataSizeFill.className = dataSizeFill.className.replace(/width-\d+/g, '').trim();
+      dataSizeFill.classList.add(widthClass);
+      dataSizeFill.classList.remove('data-fill-low', 'data-fill-medium', 'data-fill-high');
+      if (bytes > MAX_DATA_SIZE || percentageUsed > 80) {
+        dataSizeFill.classList.add('data-fill-high');
+        if (bytes > MAX_DATA_SIZE) {
+          alert('Aktuálna veľkosť dát (' + kilobytes + ' KB) prekročila maximálnu povolenú veľkosť (' + MAX_DATA_SIZE_KB + ' KB).');
+        }
+      } else if (percentageUsed > 50) {
+        dataSizeFill.classList.add('data-fill-medium');
+      } else {
+        dataSizeFill.classList.add('data-fill-low');
       }
     } catch (e) {
       dataSizeText.textContent = 'Veľkosť dát: Nepodarilo sa vypočítať';
