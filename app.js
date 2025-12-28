@@ -4,20 +4,25 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-if (navigator.storage && navigator.storage.persist) {
-  navigator.storage.persist().then(function(granted) {
-    var indicator = document.getElementById('storageIndicator');
-    if (indicator) {
-      if (granted) {
-        indicator.textContent = 'Trvalé úložisko: Povolené';
-        indicator.style.color = '#4CAF50';
-      } else {
-        indicator.textContent = 'Trvalé úložisko: Nepovolené';
-        indicator.style.color = '#f44336';
+document.addEventListener('DOMContentLoaded', function() {
+  var indicator = document.getElementById('storageIndicator');
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().then(function(granted) {
+      if (indicator) {
+        if (granted) {
+          indicator.textContent = 'Trvalé úložisko: Povolené';
+          indicator.style.color = '#4CAF50';
+        } else {
+          indicator.textContent = 'Trvalé úložisko: Dočasné';
+          indicator.style.color = '#ff9800';
+        }
       }
-    }
-  });
-}
+    });
+  } else if (indicator) {
+    indicator.textContent = 'Trvalé úložisko: Nepodporované';
+    indicator.style.color = '#999';
+  }
+});
 
 document.addEventListener('DOMContentLoaded', function() {
   var workDays = document.getElementById('workDays');

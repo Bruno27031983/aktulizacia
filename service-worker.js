@@ -1,4 +1,4 @@
-var CACHE_NAME = 'brunos-calculator-cache-v4';
+var CACHE_NAME = 'brunos-calculator-cache-v5';
 var urlsToCache = ['./', './index.html', './app.js', './manifest.json', './icons/icon-192.png', './icons/icon-512.png', './icons/favicon.svg'];
 
 self.addEventListener('install', function(event) {
