@@ -186,16 +186,40 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       var dayName = getDayName(currentYear, currentMonth, i);
       row.innerHTML = '<td>Deň ' + i + ' (' + dayName + ')</td>' +
-        '<td><input type="tel" id="start-' + currentYear + '-' + currentMonth + '-' + i + '" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, \'end-' + currentYear + '-' + currentMonth + '-' + i + '\')"></td>' +
-        '<td><input type="tel" id="end-' + currentYear + '-' + currentMonth + '-' + i + '" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, \'break-' + currentYear + '-' + currentMonth + '-' + i + '\')"></td>' +
-        '<td><input type="number" id="break-' + currentYear + '-' + currentMonth + '-' + i + '" min="0" step="0.5" placeholder="prestávka" oninput="handleBreakInput(' + i + ')"></td>' +
+        '<td><input type="tel" id="start-' + currentYear + '-' + currentMonth + '-' + i + '" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" data-next="end-' + currentYear + '-' + currentMonth + '-' + i + '"></td>' +
+        '<td><input type="tel" id="end-' + currentYear + '-' + currentMonth + '-' + i + '" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" data-next="break-' + currentYear + '-' + currentMonth + '-' + i + '"></td>' +
+        '<td><input type="number" id="break-' + currentYear + '-' + currentMonth + '-' + i + '" min="0" step="0.5" placeholder="prestávka" data-day="' + i + '"></td>' +
         '<td id="total-' + currentYear + '-' + currentMonth + '-' + i + '">0h 0m (' + (0).toFixed(decimalPlaces) + ' h)</td>' +
-        '<td><input type="number" id="gross-' + currentYear + '-' + currentMonth + '-' + i + '" min="0" step="0.01" placeholder="Hrubá Mzda" oninput="handleGrossInput(' + i + ')" readonly></td>' +
+        '<td><input type="number" id="gross-' + currentYear + '-' + currentMonth + '-' + i + '" min="0" step="0.01" placeholder="Hrubá Mzda" data-day="' + i + '" readonly></td>' +
         '<td><input type="number" id="net-' + currentYear + '-' + currentMonth + '-' + i + '" min="0" step="0.01" placeholder="Čistá Mzda" readonly></td>' +
-        '<td><button class="btn reset-btn" onclick="resetRow(' + i + ')">Vynulovať</button></td>';
+        '<td><button class="btn reset-btn" data-day="' + i + '">Vynulovať</button></td>';
       workDays.appendChild(row);
     }
+    attachTableEvents();
     loadFromLocalStorage();
+  }
+
+  function attachTableEvents() {
+    workDays.querySelectorAll('input[type="tel"]').forEach(function(input) {
+      input.addEventListener('input', function() {
+        handleInput(this, this.dataset.next);
+      });
+    });
+    workDays.querySelectorAll('input[id^="break-"]').forEach(function(input) {
+      input.addEventListener('input', function() {
+        handleBreakInput(parseInt(this.dataset.day));
+      });
+    });
+    workDays.querySelectorAll('input[id^="gross-"]').forEach(function(input) {
+      input.addEventListener('input', function() {
+        handleGrossInput(parseInt(this.dataset.day));
+      });
+    });
+    workDays.querySelectorAll('button.reset-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        resetRow(parseInt(this.dataset.day));
+      });
+    });
   }
 
   window.handleInput = function(input, nextId) {
@@ -537,4 +561,17 @@ document.addEventListener('DOMContentLoaded', function() {
   calculateTotal();
   loadDarkMode();
   updateDataSize();
+
+  document.getElementById('btnResetAll').addEventListener('click', resetAll);
+  document.getElementById('btnExportPDF').addEventListener('click', exportToPDF);
+  document.getElementById('btnSendPDF').addEventListener('click', sendPDF);
+  document.getElementById('btnRestoreBackup').addEventListener('click', restoreBackup);
+  document.getElementById('btnCreateBackup').addEventListener('click', createBackup);
+  document.getElementById('btnDarkMode').addEventListener('click', toggleDarkMode);
+  document.getElementById('employeeNameInput').addEventListener('input', updateEmployeeName);
+  document.getElementById('hourlyWageInput').addEventListener('input', updateSettings);
+  document.getElementById('taxRateInput').addEventListener('input', updateSettings);
+  document.getElementById('monthSelect').addEventListener('change', changeMonth);
+  document.getElementById('yearSelect').addEventListener('change', changeYear);
+  document.getElementById('decimalPlacesSelect').addEventListener('change', changeDecimalPlaces);
 });

@@ -319,19 +319,19 @@
     <div class="settings">
       <div>
         <label for="employeeNameInput">Meno pracovníka: </label>
-        <input type="text" id="employeeNameInput" placeholder="Zadajte meno pracovníka" oninput="updateEmployeeName()">
+        <input type="text" id="employeeNameInput" placeholder="Zadajte meno pracovníka">
       </div>
       <div>
         <label for="hourlyWageInput">Hodinová mzda (€): </label>
-        <input type="number" id="hourlyWageInput" value="10" min="0" step="0.1" oninput="updateSettings()">
+        <input type="number" id="hourlyWageInput" value="10" min="0" step="0.1">
       </div>
       <div>
         <label for="taxRateInput">Daňové percento (%): </label>
-        <input type="number" id="taxRateInput" value="2" min="0" step="0.1" oninput="updateSettings()">
+        <input type="number" id="taxRateInput" value="2" min="0" step="0.1">
       </div>
       <div>
         <label for="monthSelect">Mesiac: </label>
-        <select id="monthSelect" onchange="changeMonth()">
+        <select id="monthSelect">
           <option value="0">Január</option>
           <option value="1">Február</option>
           <option value="2">Marec</option>
@@ -348,18 +348,18 @@
       </div>
       <div>
         <label for="yearSelect">Rok: </label>
-        <select id="yearSelect" onchange="changeYear()">
+        <select id="yearSelect">
           <!-- Dynamicky generované roky -->
         </select>
       </div>
       <div>
         <label for="decimalPlacesSelect">Počet desatinných miest: </label>
-        <select id="decimalPlacesSelect" onchange="changeDecimalPlaces()">
+        <select id="decimalPlacesSelect">
           <option value="1">1</option>
           <option value="2">2</option>
         </select>
       </div>
-      <button onclick="toggleDarkMode()" class="btn highlight">Prepínať tmavý režim</button>
+      <button id="btnDarkMode" class="btn highlight">Prepínať tmavý režim</button>
     </div>
     <div class="table-container">
       <table>
@@ -389,11 +389,11 @@
       <div id="storageIndicator" style="margin-top: 5px; font-size: 12px; color: #999;">Trvalé úložisko: Kontrolujem...</div>
     </div>
     <div class="btn-container">
-      <button class="btn reset-btn" onclick="resetAll()">Resetovať všetko</button>
-      <button class="btn export-btn" onclick="exportToPDF()">Exportovať do PDF</button>
-      <button class="btn export-btn" onclick="sendPDF()">Odoslať</button>
-      <button class="btn restore-btn" onclick="restoreBackup()">Obnoviť zálohu</button>
-      <button class="btn backup-btn" onclick="createBackup()">Vytvoriť zálohu</button>
+      <button class="btn reset-btn" id="btnResetAll">Resetovať všetko</button>
+      <button class="btn export-btn" id="btnExportPDF">Exportovať do PDF</button>
+      <button class="btn export-btn" id="btnSendPDF">Odoslať</button>
+      <button class="btn restore-btn" id="btnRestoreBackup">Obnoviť zálohu</button>
+      <button class="btn backup-btn" id="btnCreateBackup">Vytvoriť zálohu</button>
     </div>
   </div>
 
