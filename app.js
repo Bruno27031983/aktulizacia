@@ -425,7 +425,12 @@ document.addEventListener('DOMContentLoaded', function() {
       margin: { top: 25 }
     });
     doc.setFontSize(12);
-    doc.text(totalSalaryDiv.innerText, 14, doc.lastAutoTable.finalY + 10);
+    var pdfSummary = totalSalaryDiv.innerText.split('\n').filter(function(line) {
+      return line.indexOf('Celková hrubá mzda') === -1 &&
+             line.indexOf('Celková čistá mzda') === -1 &&
+             line.indexOf('Priemerná čistá mzda') === -1;
+    }).join('\n');
+    doc.text(pdfSummary, 14, doc.lastAutoTable.finalY + 10);
     var pdfBlob = doc.output('blob');
     var pdfFile = new File([pdfBlob], 'brunos-calculator-report-' + getMonthName(currentMonth) + '-' + currentYear + '.pdf', { type: 'application/pdf' });
     if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
